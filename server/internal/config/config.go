@@ -15,7 +15,7 @@ type Config struct {
 	AccessTokenTTL time.Duration
 }
 
-// loadEnv() loads environment variables from the .env file
+// LoadEnv() loads environment variables from the .env file
 func LoadEnv() *Config {
 	// Load from .env if it exists
 	if err := godotenv.Load(); err != nil {

@@ -44,7 +44,7 @@ func main() {
 	}
 
 	// Create the App
-	app := app.NewApp(database, cfg.JWTSecret)
+	app := app.NewApp(database, cfg.JWTSecret, cfg.AccessTokenTTL)
 
 	// Create the handlers
 	authHandler := handlers.NewAuthHandler(app.AuthService)
@@ -54,7 +54,7 @@ func main() {
 
 	// Swagger documentation route
 	mux.HandleFunc("GET /swagger/",
-		httpSwagger.Handler(httpSwagger.URL("http://localhost:8080/swagger/doc.json")),
+		httpSwagger.Handler(httpSwagger.URL("/swagger/doc.json")),
 	)
 
 	// Create the routes

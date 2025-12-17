@@ -14,10 +14,10 @@ type App struct {
 	AuthService      *auth.AuthService
 }
 
-func NewApp(db *sql.DB, jwtSecret string) *App {
+func NewApp(db *sql.DB, jwtSecret string, accessTokenTTL time.Duration) *App {
 	userRepo := models.NewUserRepository(db)
 	refreshRepo := models.NewRefreshTokenRepository(db)
-	authService := auth.NewAuthService(userRepo, refreshRepo, jwtSecret, 15*time.Minute)
+	authService := auth.NewAuthService(userRepo, refreshRepo, jwtSecret, accessTokenTTL)
 
 	return &App{
 		UserRepo:         userRepo,

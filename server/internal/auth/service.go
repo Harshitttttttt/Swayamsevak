@@ -166,12 +166,12 @@ func (s *AuthService) LoginWithRefresh(email, password string, refreshTokenTTL t
 	}
 
 	// Create a refresh token
-	token, err := s.refreshTokenRepo.CreateRefreshToken(user.ID, refreshTokenTTL)
+	refeshToken, err := s.refreshTokenRepo.CreateRefreshToken(user.ID, refreshTokenTTL)
 	if err != nil {
 		return "", "", err
 	}
 
-	return accessToken, token.Token, nil
+	return accessToken, refeshToken.Token, nil
 }
 
 // RefreshAccessToken creates a new Access Token using a Refresh Token

@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"net/http"
+	"time"
 
 	"github.com/Harshitttttttt/Swayamsevak/server/internal/auth"
 	"github.com/Harshitttttttt/Swayamsevak/server/internal/handlers/dto"
@@ -92,7 +93,7 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Attempt to login
-	token, err := h.authService.Login(req.Email, req.Password)
+	accessToken, refreshToken, err := h.authService.LoginWithRefresh(req.Email, req.Password, 7*24*time.Hour)
 	if err != nil {
 		if errors.Is(err, auth.ErrInvalidCredentials) {
 			http.Error(w, "Invalid Credentials", http.StatusUnauthorized)
@@ -104,7 +105,8 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 
 	// Return the token
 	response := dto.LoginResponse{
-		Token: token,
+		AccessToken:  accessToken,
+		RefreshToken: refreshToken,
 	}
 	w.Header().Set("Content-type", "application/json")
 	w.WriteHeader(http.StatusOK)
