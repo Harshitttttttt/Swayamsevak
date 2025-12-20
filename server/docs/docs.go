@@ -50,7 +50,7 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "200": {
-                        "description": "OK",
+                        "description": "Access token; refresh token is set as an HttpOnly cookie",
                         "schema": {
                             "$ref": "#/definitions/dto.LoginResponse"
                         }
@@ -76,6 +76,48 @@ const docTemplate = `{
                 }
             }
         },
+        "/auth/logout": {
+            "post": {
+                "description": "Revoke refresh token. The refresh token is read from the HttpOnly cookie named \"refresh_token\" by default; clients may optionally pass it in the request body.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Authentication"
+                ],
+                "summary": "Logout user",
+                "parameters": [
+                    {
+                        "description": "Refresh token (optional when cookie is used)",
+                        "name": "token",
+                        "in": "body",
+                        "schema": {
+                            "$ref": "#/definitions/dto.LogoutRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "No Content"
+                    },
+                    "400": {
+                        "description": "Invalid Request Payload",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "401": {
+                        "description": "Invalid refresh token",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
         "/auth/refresh": {
             "post": {
                 "description": "Get a new access token using a valid refresh token",
@@ -91,10 +133,9 @@ const docTemplate = `{
                 "summary": "Refresh access token",
                 "parameters": [
                     {
-                        "description": "Refresh token",
+                        "description": "Refresh token (optional when cookie is used)",
                         "name": "token",
                         "in": "body",
-                        "required": true,
                         "schema": {
                             "$ref": "#/definitions/dto.RefreshRequest"
                         }
@@ -235,7 +276,12 @@ const docTemplate = `{
                 "access_token": {
                     "type": "string",
                     "example": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
-                },
+                }
+            }
+        },
+        "dto.LogoutRequest": {
+            "type": "object",
+            "properties": {
                 "refresh_token": {
                     "type": "string",
                     "example": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."

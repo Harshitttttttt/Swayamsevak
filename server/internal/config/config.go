@@ -9,10 +9,12 @@ import (
 )
 
 type Config struct {
-	DBDSN          string
-	JWTSecret      string
-	Port           string
-	AccessTokenTTL time.Duration
+	DBDSN           string
+	JWTSecret       string
+	Port            string
+	AccessTokenTTL  time.Duration
+	RefreshTokenTTL time.Duration
+	CookieSecure    bool
 }
 
 // LoadEnv() loads environment variables from the .env file
@@ -30,11 +32,18 @@ func LoadEnv() *Config {
 		}
 	}
 
+	// Defaults
+	accessTTL := 15 * time.Minute
+	refreshTTL := 7 * 24 * time.Hour
+	cookieSecure := true
+
 	cfg := &Config{
-		DBDSN:          os.Getenv("DB_DSN"),
-		JWTSecret:      os.Getenv("JWT_SECRET"),
-		Port:           os.Getenv("PORT"),
-		AccessTokenTTL: 15 * time.Minute,
+		DBDSN:           os.Getenv("DB_DSN"),
+		JWTSecret:       os.Getenv("JWT_SECRET"),
+		Port:            os.Getenv("PORT"),
+		AccessTokenTTL:  accessTTL,
+		RefreshTokenTTL: refreshTTL,
+		CookieSecure:    cookieSecure,
 	}
 
 	// Default port

@@ -47,7 +47,7 @@ func main() {
 	app := app.NewApp(database, cfg.JWTSecret, cfg.AccessTokenTTL)
 
 	// Create the handlers
-	authHandler := handlers.NewAuthHandler(app.AuthService)
+	authHandler := handlers.NewAuthHandler(app.AuthService, cfg.RefreshTokenTTL, cfg.CookieSecure)
 	userHandler := handlers.NewUserHandler(app.UserRepo)
 
 	mux := http.NewServeMux()
@@ -66,6 +66,7 @@ func main() {
 	mux.HandleFunc("POST /api/auth/register", authHandler.Register)
 	mux.HandleFunc("POST /api/auth/login", authHandler.Login)
 	mux.HandleFunc("POST /api/auth/refresh", authHandler.RefreshToken)
+	mux.HandleFunc("POST /api/auth/logout", authHandler.Logout)
 
 	// Protected Routes
 	protectedProfile := middleware.AuthMiddleware(app.AuthService)(

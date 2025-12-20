@@ -14,6 +14,9 @@ definitions:
       access_token:
         example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
         type: string
+    type: object
+  dto.LogoutRequest:
+    properties:
       refresh_token:
         example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
         type: string
@@ -96,7 +99,7 @@ paths:
       - application/json
       responses:
         "200":
-          description: OK
+          description: Access token; refresh token is set as an HttpOnly cookie
           schema:
             $ref: '#/definitions/dto.LoginResponse'
         "400":
@@ -114,16 +117,44 @@ paths:
       summary: Login user
       tags:
       - Authentication
+  /auth/logout:
+    post:
+      consumes:
+      - application/json
+      description: Revoke refresh token. The refresh token is read from the HttpOnly
+        cookie named "refresh_token" by default; clients may optionally pass it in
+        the request body.
+      parameters:
+      - description: Refresh token (optional when cookie is used)
+        in: body
+        name: token
+        schema:
+          $ref: '#/definitions/dto.LogoutRequest'
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: No Content
+        "400":
+          description: Invalid Request Payload
+          schema:
+            type: string
+        "401":
+          description: Invalid refresh token
+          schema:
+            type: string
+      summary: Logout user
+      tags:
+      - Authentication
   /auth/refresh:
     post:
       consumes:
       - application/json
       description: Get a new access token using a valid refresh token
       parameters:
-      - description: Refresh token
+      - description: Refresh token (optional when cookie is used)
         in: body
         name: token
-        required: true
         schema:
           $ref: '#/definitions/dto.RefreshRequest'
       produces:

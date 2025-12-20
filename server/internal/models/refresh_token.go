@@ -95,3 +95,80 @@ func (r *RefreshTokenRepository) RevokeRefreshToken(tokenString string) error {
 	_, err := r.db.Exec(query, tokenString)
 	return err
 }
+
+// RotateRefreshToken atomically creates a new refresh token for the same user and revokes the old one.
+// Returns the new RefreshToken or an error (sql.ErrNoRows if old token not found).
+func (r *RefreshTokenRepository) RotateRefreshToken(oldTokenString string, ttl time.Duration) (*RefreshToken, error) {
+	tx, err := r.db.Begin()
+	if err != nil {
+		return nil, err
+	}
+
+	// on failure rollback
+	defer func() {
+		if err != nil {
+			_ = tx.Rollback()
+		}
+	}()
+
+	var userID uuid.UUID
+	var revoked bool
+	var expiresAt time.Time
+
+	// Retrieve the old token's user ID
+	query := `
+		SELECT user_id, revoked, expires_at
+		FROM refresh_tokens
+		WHERE token = $1
+		FOR UPDATE;
+	`
+
+	err = tx.QueryRow(query, oldTokenString).Scan(&userID, &revoked, &expiresAt)
+	if err != nil {
+		return nil, err
+	}
+
+	// Create a new refresh token
+	newTokenID := uuid.New()
+	tokenBytes := make([]byte, 32)
+	if _, err = rand.Read(tokenBytes); err != nil {
+		return nil, err
+	}
+	newTokenString := base64.RawURLEncoding.EncodeToString(tokenBytes)
+	newExpiresAt := time.Now().Add(ttl)
+
+	insertQuery :=
+		`
+		INSERT INTO refresh_tokens (id, user_id, token, expires_at)
+		VALUES ($1, $2, $3, $4)
+		RETURNING created_at, updated_at, revoked;
+	`
+
+	var newToken RefreshToken
+	newToken.ID = newTokenID
+	newToken.UserID = userID
+	newToken.Token = newTokenString
+	newToken.ExpiresAt = newExpiresAt
+
+	if err = tx.QueryRow(insertQuery, newToken.ID, newToken.UserID, newToken.Token, newToken.ExpiresAt).Scan(&newToken.CreatedAt, &newToken.UpdatedAt, &newToken.Revoked); err != nil {
+		return nil, err
+	}
+
+	// Revoke the old token
+	updateQuery :=
+		`
+		UPDATE refresh_tokens
+		SET revoked = true, updated_at = NOW()
+		WHERE token = $1;
+	`
+
+	if _, err = tx.Exec(updateQuery, oldTokenString); err != nil {
+		return nil, err
+	}
+
+	if err = tx.Commit(); err != nil {
+		return nil, err
+	}
+
+	return &newToken, nil
+}

@@ -22,8 +22,7 @@ type LoginRequest struct {
 
 // LoginResponse contains the JWT token after successful login
 type LoginResponse struct {
-	AccessToken  string `json:"access_token" example:"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."`
-	RefreshToken string `json:"refresh_token" example:"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."`
+	AccessToken string `json:"access_token" example:"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."`
 }
 
 // RefreshRequest represents the refresh token payload
@@ -34,4 +33,8 @@ type RefreshRequest struct {
 // RefreshResponse contains the new access token
 type RefreshResponse struct {
 	Token string `json:"token" example:"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."`
+}
+
+type LogoutRequest struct {
+	RefreshToken string `json:"refresh_token" example:"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."`
 }

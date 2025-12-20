@@ -175,34 +175,37 @@ func (s *AuthService) LoginWithRefresh(email, password string, refreshTokenTTL t
 }
 
 // RefreshAccessToken creates a new Access Token using a Refresh Token
-func (s *AuthService) RefreshAccessToken(refreshTokenString string) (string, error) {
-	// Retreive the refresh token
-	token, err := s.refreshTokenRepo.GetRefreshToken(refreshTokenString)
+func (s *AuthService) RefreshAccessToken(oldRefreshTokenString string, refreshTTL time.Duration) (string, string, error) {
+	// Rotate the refresh token
+	newToken, err := s.refreshTokenRepo.RotateRefreshToken(oldRefreshTokenString, refreshTTL)
 	if err != nil {
-		return "", ErrInvalidToken
-	}
-
-	// Check if the token is valid
-	if token.Revoked {
-		return "", ErrInvalidToken
-	}
-
-	// Check if the token has expired
-	if time.Now().After(token.ExpiresAt) {
-		return "", ErrExpiredToken
+		return "", "", ErrInvalidToken
 	}
 
 	// Get the user
-	user, err := s.userRepo.GetUserByID(token.UserID)
+	user, err := s.userRepo.GetUserByID(newToken.UserID)
 	if err != nil {
-		return "", err
+		return "", "", err
 	}
 
 	// Generate a new access token
 	accessToken, err := s.generateAccessToken(user)
 	if err != nil {
-		return "", err
+		return "", "", err
 	}
 
-	return accessToken, nil
+	return accessToken, newToken.Token, nil
+}
+
+func (s *AuthService) Logout(refreshTokenString string) error {
+	token, err := s.refreshTokenRepo.GetRefreshToken(refreshTokenString)
+	if err != nil {
+		return ErrInvalidToken
+	}
+
+	if token.Revoked {
+		return nil
+	}
+
+	return s.refreshTokenRepo.RevokeRefreshToken(refreshTokenString)
 }

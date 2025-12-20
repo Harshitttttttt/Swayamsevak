@@ -12,14 +12,42 @@ import (
 
 // AuthHandler contains HTTP handlers for authentication
 type AuthHandler struct {
-	authService *auth.AuthService
+	authService     *auth.AuthService
+	refreshTokenTTL time.Duration
+	cookieSecure    bool
 }
 
 // NewAuthHandler creates a new Auth handler
-func NewAuthHandler(authService *auth.AuthService) *AuthHandler {
+func NewAuthHandler(authService *auth.AuthService, refreshTTL time.Duration, cookieSecure bool) *AuthHandler {
 	return &AuthHandler{
-		authService: authService,
+		authService:     authService,
+		refreshTokenTTL: refreshTTL,
+		cookieSecure:    cookieSecure,
 	}
+}
+
+const refreshTokenCookieName = "refresh_token"
+
+func (h *AuthHandler) setRefreshTokenCookie(w http.ResponseWriter, tokenString string) {
+	http.SetCookie(w, &http.Cookie{
+		Name:     refreshTokenCookieName,
+		Value:    tokenString,
+		HttpOnly: true,
+		Secure:   h.cookieSecure,
+		SameSite: http.SameSiteLaxMode,
+		Path:     "/api/",
+		MaxAge:   int(h.refreshTokenTTL.Seconds()),
+	})
+}
+
+func (h *AuthHandler) clearRefreshTokenCookie(w http.ResponseWriter) {
+	http.SetCookie(w, &http.Cookie{
+		Name:     refreshTokenCookieName,
+		Value:    "",
+		HttpOnly: true,
+		Expires:  time.Unix(0, 0),
+		Path:     "/api",
+	})
 }
 
 // Register godoc
@@ -79,7 +107,7 @@ func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 // @Accept       json
 // @Produce      json
 // @Param        credentials body dto.LoginRequest true "Login credentials"
-// @Success      200 {object} dto.LoginResponse
+// @Success      200 {object} dto.LoginResponse "Access token; refresh token is set as an HttpOnly cookie"
 // @Failure      400 {string} string "Invalid Request Payload"
 // @Failure      401 {string} string "Invalid Credentials"
 // @Failure      500 {string} string "Internal Server Error"
@@ -103,10 +131,12 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Set the refresh token as an HttpOnly cookie
+	h.setRefreshTokenCookie(w, refreshToken)
+
 	// Return the token
 	response := dto.LoginResponse{
-		AccessToken:  accessToken,
-		RefreshToken: refreshToken,
+		AccessToken: accessToken,
 	}
 	w.Header().Set("Content-type", "application/json")
 	w.WriteHeader(http.StatusOK)
@@ -119,7 +149,7 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 // @Tags         Authentication
 // @Accept       json
 // @Produce      json
-// @Param        token body dto.RefreshRequest true "Refresh token"
+// @Param        token body dto.RefreshRequest false "Refresh token (optional when cookie is used)"
 // @Success      200 {object} dto.RefreshResponse
 // @Failure      400 {string} string "Invalid Request Payload"
 // @Failure      401 {string} string "Invalid or Expired refresh token"
@@ -128,13 +158,24 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 func (h *AuthHandler) RefreshToken(w http.ResponseWriter, r *http.Request) {
 	// Parse the request body
 	var req dto.RefreshRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, "Invalid Request Payload", http.StatusBadRequest)
+	_ = json.NewDecoder(r.Body).Decode(&req) // We ignore error here because we are reading token from cookie
+
+	// Get the refresh token from cookie
+	var tokenStr string
+	cookie, err := r.Cookie(refreshTokenCookieName)
+	if err != nil {
+		tokenStr = cookie.Value
+	} else {
+		tokenStr = req.RefreshToken
+	}
+
+	if tokenStr == "" {
+		http.Error(w, "Missing Refresh Token", http.StatusUnauthorized)
 		return
 	}
 
 	// Attempt to refresh the token
-	token, err := h.authService.RefreshAccessToken(req.RefreshToken)
+	accessToken, newRefreshToken, err := h.authService.RefreshAccessToken(tokenStr, h.refreshTokenTTL)
 	if err != nil {
 		if errors.Is(err, auth.ErrInvalidToken) || errors.Is(err, auth.ErrExpiredToken) {
 			http.Error(w, "Invalid or Expired refresh token", http.StatusUnauthorized)
@@ -144,12 +185,50 @@ func (h *AuthHandler) RefreshToken(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Set new refresh token cookie (rotate in place)
+	h.setRefreshTokenCookie(w, newRefreshToken)
+
 	// Return the new access token
 	response := &dto.RefreshResponse{
-		Token: token,
+		Token: accessToken,
 	}
 
 	w.Header().Set("Content-type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(response)
+}
+
+// Logout godoc
+// @Summary      Logout user
+// @Description  Revoke refresh token. The refresh token is read from the HttpOnly cookie named "refresh_token" by default; clients may optionally pass it in the request body.
+// @Tags         Authentication
+// @Accept       json
+// @Produce      json
+// @Param        token body dto.LogoutRequest false "Refresh token (optional when cookie is used)"
+// @Success      204 "No Content"
+// @Failure      400 {string} string "Invalid Request Payload"
+// @Failure      401 {string} string "Invalid refresh token"
+// @Router       /auth/logout [post]
+func (h *AuthHandler) Logout(w http.ResponseWriter, r *http.Request) {
+	var req dto.LogoutRequest
+	_ = json.NewDecoder(r.Body).Decode(&req) // We ignore error here because we are reading token from cookie
+
+	tokenStr := req.RefreshToken
+	if cookie, err := r.Cookie(refreshTokenCookieName); err == nil {
+		tokenStr = cookie.Value
+	}
+
+	if tokenStr == "" {
+		http.Error(w, "Invalid Request Payload", http.StatusBadRequest)
+		return
+	}
+
+	if err := h.authService.Logout(tokenStr); err != nil {
+		http.Error(w, "Invalid refresh token", http.StatusUnauthorized)
+		return
+	}
+
+	// Clear cookie on logout
+	h.clearRefreshTokenCookie(w)
+	w.WriteHeader(http.StatusNoContent)
 }
