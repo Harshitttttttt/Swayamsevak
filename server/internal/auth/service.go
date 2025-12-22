@@ -159,6 +159,10 @@ func (s *AuthService) LoginWithRefresh(email, password string, refreshTokenTTL t
 	// because we don't want to block user login even if update fails
 	_ = s.userRepo.UpdateLastLogin(user.ID)
 
+	if err := s.refreshTokenRepo.RevokeAllForUser(user.ID); err != nil {
+		return "", "", err
+	}
+
 	// Generate an access token
 	accessToken, err = s.generateAccessToken(user)
 	if err != nil {

@@ -172,3 +172,16 @@ func (r *RefreshTokenRepository) RotateRefreshToken(oldTokenString string, ttl t
 
 	return &newToken, nil
 }
+
+func (r *RefreshTokenRepository) RevokeAllForUser(userID uuid.UUID) error {
+	query :=
+		`
+		UPDATE refreh_tokens
+		SET revoked = true, updated_at = NOW()
+		WHERE user_id = $1 AND revoked = false;
+	`
+
+	_, err := r.db.Exec(query, userID)
+
+	return err
+}

@@ -121,7 +121,7 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Attempt to login
-	accessToken, refreshToken, err := h.authService.LoginWithRefresh(req.Email, req.Password, 7*24*time.Hour)
+	accessToken, refreshToken, err := h.authService.LoginWithRefresh(req.Email, req.Password, h.refreshTokenTTL)
 	if err != nil {
 		if errors.Is(err, auth.ErrInvalidCredentials) {
 			http.Error(w, "Invalid Credentials", http.StatusUnauthorized)
@@ -163,7 +163,7 @@ func (h *AuthHandler) RefreshToken(w http.ResponseWriter, r *http.Request) {
 	// Get the refresh token from cookie
 	var tokenStr string
 	cookie, err := r.Cookie(refreshTokenCookieName)
-	if err != nil {
+	if err == nil {
 		tokenStr = cookie.Value
 	} else {
 		tokenStr = req.RefreshToken
