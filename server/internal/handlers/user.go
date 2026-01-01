@@ -32,6 +32,8 @@ func NewUserHandler(userRepo *models.UserRepository) *UserHandler {
 // @Failure      401 {string} string "Unauthorized"
 // @Router       /profile [get]
 func (h *UserHandler) Profile(w http.ResponseWriter, r *http.Request) {
+	defer r.Body.Close()
+
 	// Get user ID from request context
 	userID, ok := middleware.GetUserID(r)
 	if !ok {

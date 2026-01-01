@@ -3,6 +3,7 @@ package handlers
 import (
 	"encoding/json"
 	"errors"
+	"log"
 	"net/http"
 	"time"
 
@@ -84,18 +85,20 @@ func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
+		// Log the underlying error for debugging
+		log.Printf("register: failed to create user: %v", err)
 		http.Error(w, "Error Creating User", http.StatusInternalServerError)
 		return
 	}
 
-	// Return the created user (without sensistive data)
+	// Return the created user (without sensitive data)
 	response := dto.RegisterResponse{
 		ID:       user.ID.String(),
 		Email:    user.Email,
 		Username: user.Username,
 	}
 
-	w.Header().Set("Content-type", "application/json")
+	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
 	json.NewEncoder(w).Encode(response)
 }
@@ -113,6 +116,7 @@ func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 // @Failure      500 {string} string "Internal Server Error"
 // @Router       /auth/login [post]
 func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
+
 	// Parse the request body
 	var req dto.LoginRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
@@ -126,6 +130,7 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 		if errors.Is(err, auth.ErrInvalidCredentials) {
 			http.Error(w, "Invalid Credentials", http.StatusUnauthorized)
 		} else {
+			log.Printf("Internal Server Error: %v", err)
 			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		}
 		return
@@ -138,7 +143,7 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 	response := dto.LoginResponse{
 		AccessToken: accessToken,
 	}
-	w.Header().Set("Content-type", "application/json")
+	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(response)
 }
@@ -156,6 +161,8 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 // @Failure      500 {string} string "Internal Server Error"
 // @Router       /auth/refresh [post]
 func (h *AuthHandler) RefreshToken(w http.ResponseWriter, r *http.Request) {
+	defer r.Body.Close()
+
 	// Parse the request body
 	var req dto.RefreshRequest
 	_ = json.NewDecoder(r.Body).Decode(&req) // We ignore error here because we are reading token from cookie
@@ -193,7 +200,7 @@ func (h *AuthHandler) RefreshToken(w http.ResponseWriter, r *http.Request) {
 		Token: accessToken,
 	}
 
-	w.Header().Set("Content-type", "application/json")
+	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(response)
 }
@@ -210,6 +217,8 @@ func (h *AuthHandler) RefreshToken(w http.ResponseWriter, r *http.Request) {
 // @Failure      401 {string} string "Invalid refresh token"
 // @Router       /auth/logout [post]
 func (h *AuthHandler) Logout(w http.ResponseWriter, r *http.Request) {
+	defer r.Body.Close()
+
 	var req dto.LogoutRequest
 	_ = json.NewDecoder(r.Body).Decode(&req) // We ignore error here because we are reading token from cookie
 

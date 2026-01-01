@@ -15,13 +15,15 @@ var (
 
 // FeedService provides feed-related functionality
 type FeedService struct {
-	feedRepo *models.FeedRepository
+	feedRepo             *models.FeedRepository
+	feedSubscriptionRepo *models.FeedSubscriptionRepository
 }
 
 // NewFeedService creates a new feed service
-func NewFeedService(feedRepo *models.FeedRepository) *FeedService {
+func NewFeedService(feedRepo *models.FeedRepository, feedSubscriptionRepo *models.FeedSubscriptionRepository) *FeedService {
 	return &FeedService{
-		feedRepo: feedRepo,
+		feedRepo:             feedRepo,
+		feedSubscriptionRepo: feedSubscriptionRepo,
 	}
 }
 
@@ -86,4 +88,25 @@ func (s *FeedService) ListFeeds() ([]*models.Feed, error) {
 	}
 
 	return feeds, nil
+}
+
+// SubscribeToFeed allows a user to subscribe to a feed
+func (s *FeedService) SubscribeToFeed(userID, feedID uuid.UUID, customTitle string) error {
+	// Get the feed from the db
+	feed, err := s.feedRepo.GetFeedByID(feedID)
+	if err != nil {
+		return err
+	}
+
+	// Handle customTitle being optional
+	if customTitle == "" {
+		customTitle = feed.Title
+	}
+
+	_, err = s.feedSubscriptionRepo.SubscribeUserToFeed(userID, feedID, customTitle)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }

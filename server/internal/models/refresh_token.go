@@ -176,7 +176,7 @@ func (r *RefreshTokenRepository) RotateRefreshToken(oldTokenString string, ttl t
 func (r *RefreshTokenRepository) RevokeAllForUser(userID uuid.UUID) error {
 	query :=
 		`
-		UPDATE refreh_tokens
+		UPDATE refresh_tokens
 		SET revoked = true, updated_at = NOW()
 		WHERE user_id = $1 AND revoked = false;
 	`

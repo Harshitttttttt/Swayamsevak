@@ -49,6 +49,7 @@ func main() {
 	// Create the handlers
 	authHandler := handlers.NewAuthHandler(app.AuthService, cfg.RefreshTokenTTL, cfg.CookieSecure)
 	userHandler := handlers.NewUserHandler(app.UserRepo)
+	feedHandler := handlers.NewFeedHandler(app.FeedService)
 
 	mux := http.NewServeMux()
 
@@ -63,17 +64,26 @@ func main() {
 	})
 
 	// Public Routes
+
+	// Auth Routes
 	mux.HandleFunc("POST /api/auth/register", authHandler.Register)
 	mux.HandleFunc("POST /api/auth/login", authHandler.Login)
 	mux.HandleFunc("POST /api/auth/refresh", authHandler.RefreshToken)
 	mux.HandleFunc("POST /api/auth/logout", authHandler.Logout)
 
-	// Protected Routes
-	protectedProfile := middleware.AuthMiddleware(app.AuthService)(
-		http.HandlerFunc(userHandler.Profile),
-	)
-
+	// User Routes
+	protectedProfile := middleware.AuthMiddleware(app.AuthService)(http.HandlerFunc(userHandler.Profile))
 	mux.Handle("GET /api/profile", protectedProfile)
+
+	// Feed Routes
+	protectedFeedCreation := middleware.AuthMiddleware(app.AuthService)(http.HandlerFunc(feedHandler.AddFeedHandler))
+	mux.Handle("POST /api/feed", protectedFeedCreation)
+
+	protectedGetAllFeeds := middleware.AuthMiddleware(app.AuthService)(http.HandlerFunc(feedHandler.GetAllFeedsHandler))
+	mux.Handle("GET /api/feeds", protectedGetAllFeeds)
+
+	protectedSubscribeFeed := middleware.AuthMiddleware(app.AuthService)(http.HandlerFunc(feedHandler.SubscribeToFeedHandler))
+	mux.Handle("POST /api/feed/subscribe", protectedSubscribeFeed)
 
 	fmt.Printf("Server running on \x1b[91mhttp://localhost:%s\x1b[0m\n", cfg.Port)
 	log.Fatal(http.ListenAndServe(":"+cfg.Port, mux))

@@ -1,5 +1,52 @@
 basePath: /api
 definitions:
+  dto.AddFeedRequest:
+    properties:
+      description:
+        example: This is an example feed description.
+        type: string
+      feed_url:
+        example: https://example.com/feed
+        type: string
+      site_url:
+        example: https://example.com
+        type: string
+      title:
+        example: Example Feed
+        type: string
+    type: object
+  dto.AddFeedResponse:
+    properties:
+      id:
+        example: 550e8400-e29b-41d4-a716-446655440000
+        type: string
+    type: object
+  dto.FeedResponse:
+    properties:
+      created_at:
+        type: string
+      description:
+        type: string
+      feed_url:
+        type: string
+      id:
+        type: string
+      last_fetched_at:
+        type: string
+      site_url:
+        type: string
+      title:
+        type: string
+      updated_at:
+        type: string
+    type: object
+  dto.ListFeedsResponse:
+    properties:
+      feeds:
+        items:
+          $ref: '#/definitions/dto.FeedResponse'
+        type: array
+    type: object
   dto.LoginRequest:
     properties:
       email:
@@ -55,6 +102,21 @@ definitions:
         type: string
       username:
         example: johndoe
+        type: string
+    type: object
+  dto.SubscribeFeedRequest:
+    properties:
+      custom_title:
+        example: My RSS Feed
+        type: string
+      feed_id:
+        example: 17b3a6f1-1617-4104-b914-fffba0236bd9
+        type: string
+    type: object
+  dto.SubscribeFeedResponse:
+    properties:
+      message:
+        example: Successfully subscribed to the feed
         type: string
     type: object
   dto.UserResponse:
@@ -213,6 +275,93 @@ paths:
       summary: Register a new user
       tags:
       - Authentication
+  /feed:
+    post:
+      consumes:
+      - application/json
+      description: Register a new RSS/Atom feed URL in the system for aggregation
+      parameters:
+      - description: Feed registration details
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.AddFeedRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Feed successfully registered
+          schema:
+            $ref: '#/definitions/dto.AddFeedResponse'
+        "400":
+          description: Invalid Request Body
+          schema:
+            type: string
+        "409":
+          description: Feed already exists, aborting
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      security:
+      - BearerAuth: []
+      summary: Add a new RSS feed
+      tags:
+      - Feeds
+  /feed/subscribe:
+    post:
+      consumes:
+      - application/json
+      description: Subscribe the authenticated user to a specific RSS/Atom feed
+      parameters:
+      - description: Subscription details
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.SubscribeFeedRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Successfully subscribed to the feed
+          schema:
+            $ref: '#/definitions/dto.SubscribeFeedResponse'
+        "400":
+          description: Invalid Request Body
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      security:
+      - BearerAuth: []
+      summary: Subscribe to an RSS feed
+      tags:
+      - Feeds
+  /feeds:
+    get:
+      description: Retrieve all registered RSS/Atom feeds in the system
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: List of all registered feeds
+          schema:
+            $ref: '#/definitions/dto.ListFeedsResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      security:
+      - BearerAuth: []
+      summary: Get all RSS feeds
+      tags:
+      - Feeds
   /profile:
     get:
       consumes:

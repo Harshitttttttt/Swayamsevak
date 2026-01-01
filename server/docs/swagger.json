@@ -215,6 +215,145 @@
                 }
             }
         },
+        "/feed": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Register a new RSS/Atom feed URL in the system for aggregation",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Feeds"
+                ],
+                "summary": "Add a new RSS feed",
+                "parameters": [
+                    {
+                        "description": "Feed registration details",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dto.AddFeedRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Feed successfully registered",
+                        "schema": {
+                            "$ref": "#/definitions/dto.AddFeedResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid Request Body",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "409": {
+                        "description": "Feed already exists, aborting",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/feed/subscribe": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Subscribe the authenticated user to a specific RSS/Atom feed",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Feeds"
+                ],
+                "summary": "Subscribe to an RSS feed",
+                "parameters": [
+                    {
+                        "description": "Subscription details",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dto.SubscribeFeedRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successfully subscribed to the feed",
+                        "schema": {
+                            "$ref": "#/definitions/dto.SubscribeFeedResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid Request Body",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/feeds": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Retrieve all registered RSS/Atom feeds in the system",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Feeds"
+                ],
+                "summary": "Get all RSS feeds",
+                "responses": {
+                    "200": {
+                        "description": "List of all registered feeds",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ListFeedsResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
         "/profile": {
             "get": {
                 "security": [
@@ -251,6 +390,76 @@
         }
     },
     "definitions": {
+        "dto.AddFeedRequest": {
+            "type": "object",
+            "properties": {
+                "description": {
+                    "type": "string",
+                    "example": "This is an example feed description."
+                },
+                "feed_url": {
+                    "type": "string",
+                    "example": "https://example.com/feed"
+                },
+                "site_url": {
+                    "type": "string",
+                    "example": "https://example.com"
+                },
+                "title": {
+                    "type": "string",
+                    "example": "Example Feed"
+                }
+            }
+        },
+        "dto.AddFeedResponse": {
+            "type": "object",
+            "properties": {
+                "id": {
+                    "type": "string",
+                    "example": "550e8400-e29b-41d4-a716-446655440000"
+                }
+            }
+        },
+        "dto.FeedResponse": {
+            "type": "object",
+            "properties": {
+                "created_at": {
+                    "type": "string"
+                },
+                "description": {
+                    "type": "string"
+                },
+                "feed_url": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "last_fetched_at": {
+                    "type": "string"
+                },
+                "site_url": {
+                    "type": "string"
+                },
+                "title": {
+                    "type": "string"
+                },
+                "updated_at": {
+                    "type": "string"
+                }
+            }
+        },
+        "dto.ListFeedsResponse": {
+            "type": "object",
+            "properties": {
+                "feeds": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dto.FeedResponse"
+                    }
+                }
+            }
+        },
         "dto.LoginRequest": {
             "type": "object",
             "properties": {
@@ -331,6 +540,28 @@
                 "username": {
                     "type": "string",
                     "example": "johndoe"
+                }
+            }
+        },
+        "dto.SubscribeFeedRequest": {
+            "type": "object",
+            "properties": {
+                "custom_title": {
+                    "type": "string",
+                    "example": "My RSS Feed"
+                },
+                "feed_id": {
+                    "type": "string",
+                    "example": "17b3a6f1-1617-4104-b914-fffba0236bd9"
+                }
+            }
+        },
+        "dto.SubscribeFeedResponse": {
+            "type": "object",
+            "properties": {
+                "message": {
+                    "type": "string",
+                    "example": "Successfully subscribed to the feed"
                 }
             }
         },
