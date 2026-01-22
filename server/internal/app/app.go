@@ -12,9 +12,13 @@ import (
 type App struct {
 	UserRepo         *models.UserRepository
 	RefreshTokenRepo *models.RefreshTokenRepository
-	AuthService      *auth.AuthService
-	FeedRepo         *models.FeedRepository
-	FeedService      *feeds.FeedService
+
+	AuthService *auth.AuthService
+
+	FeedRepo    *models.FeedRepository
+	FeedService *feeds.FeedService
+
+	ArticleRepo *models.ArticleRepository
 }
 
 func NewApp(db *sql.DB, jwtSecret string, accessTokenTTL time.Duration) *App {
@@ -24,7 +28,11 @@ func NewApp(db *sql.DB, jwtSecret string, accessTokenTTL time.Duration) *App {
 
 	feedRepo := models.NewFeedRepository(db)
 	feedSubscriptionRepo := models.NewFeedSubscriptionRepository(db)
-	feedService := feeds.NewFeedService(feedRepo, feedSubscriptionRepo)
+	articleRepo := models.NewArticleRepository(db)
+
+	fetcher := feeds.NewFetcher()
+
+	feedService := feeds.NewFeedService(feedRepo, feedSubscriptionRepo, articleRepo, fetcher)
 
 	return &App{
 		UserRepo:         userRepo,
@@ -32,5 +40,6 @@ func NewApp(db *sql.DB, jwtSecret string, accessTokenTTL time.Duration) *App {
 		AuthService:      authService,
 		FeedRepo:         feedRepo,
 		FeedService:      feedService,
+		ArticleRepo:      articleRepo,
 	}
 }

@@ -1,8 +1,10 @@
 package feeds
 
 import (
+	"context"
 	"database/sql"
 	"errors"
+	"time"
 
 	"github.com/Harshitttttttt/Swayamsevak/server/internal/models"
 	"github.com/google/uuid"
@@ -17,13 +19,18 @@ var (
 type FeedService struct {
 	feedRepo             *models.FeedRepository
 	feedSubscriptionRepo *models.FeedSubscriptionRepository
+	articleRepo          *models.ArticleRepository
+
+	fetcher *Fetcher
 }
 
 // NewFeedService creates a new feed service
-func NewFeedService(feedRepo *models.FeedRepository, feedSubscriptionRepo *models.FeedSubscriptionRepository) *FeedService {
+func NewFeedService(feedRepo *models.FeedRepository, feedSubscriptionRepo *models.FeedSubscriptionRepository, articleRepo *models.ArticleRepository, fetcher *Fetcher) *FeedService {
 	return &FeedService{
 		feedRepo:             feedRepo,
 		feedSubscriptionRepo: feedSubscriptionRepo,
+		articleRepo:          articleRepo,
+		fetcher:              fetcher,
 	}
 }
 
@@ -109,4 +116,41 @@ func (s *FeedService) SubscribeToFeed(userID, feedID uuid.UUID, customTitle stri
 	}
 
 	return nil
+}
+
+// FetchAndStoreFeed fetches a feed and stores its articles
+func (s *FeedService) FetchAndStoreFeed(ctx context.Context, feed *models.Feed) error {
+	// Claim First
+	if err := s.feedRepo.UpdateLastFetchedAt(feed.ID); err != nil {
+		return err
+	}
+
+	rss, err := s.fetcher.Fetch(ctx, feed.FeedURL)
+	if err != nil {
+		return err
+	}
+
+	articles := NormalizeItems(rss, feed.ID)
+
+	return s.articleRepo.InsertManyArticlesIgnoreDuplicates(ctx, articles)
+}
+
+// GetNextFeedToFetch retrieves the next feed that needs to be fetched
+func (s *FeedService) GetNextFeedsToFetch(ctx context.Context, limit int, olderThan time.Duration) ([]*models.Feed, error) {
+	feeds, err := s.feedRepo.GetNextFeedsToFetch(ctx, limit, olderThan)
+	if err != nil {
+		return nil, err
+	}
+
+	return feeds, nil
+}
+
+// FetchUsersSubscribedFeeds is a business logic function that retrieves a users articles for their subscribed feeds
+func (s *FeedService) FetchUserSubscribedFeeds(ctx context.Context, userID uuid.UUID, offset, limit int) ([]*models.Article, error) {
+	articles, err := s.articleRepo.GetUserSubscribedArticles(ctx, userID, offset, limit)
+	if err != nil {
+		return nil, err
+	}
+
+	return articles, err
 }

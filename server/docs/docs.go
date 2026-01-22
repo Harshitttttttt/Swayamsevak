@@ -278,6 +278,43 @@ const docTemplate = `{
                 }
             }
         },
+        "/feed/articles": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Fetch the articles for feeds subscribed to by a user",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Feeds"
+                ],
+                "summary": "Fetch articles for user subscribed feeds",
+                "responses": {
+                    "200": {
+                        "description": "Successfully fetched all articles",
+                        "schema": {
+                            "$ref": "#/definitions/dto.GetUserArticlesResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid Request Body",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
         "/feed/subscribe": {
             "post": {
                 "security": [
@@ -426,6 +463,44 @@ const docTemplate = `{
                 }
             }
         },
+        "dto.ArticlesResponse": {
+            "type": "object",
+            "properties": {
+                "author": {
+                    "type": "string"
+                },
+                "content": {
+                    "type": "string"
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "feed_id": {
+                    "type": "string"
+                },
+                "guid": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "published_at": {
+                    "type": "string"
+                },
+                "summary": {
+                    "type": "string"
+                },
+                "title": {
+                    "type": "string"
+                },
+                "updated_at": {
+                    "type": "string"
+                },
+                "url": {
+                    "type": "string"
+                }
+            }
+        },
         "dto.FeedResponse": {
             "type": "object",
             "properties": {
@@ -452,6 +527,17 @@ const docTemplate = `{
                 },
                 "updated_at": {
                     "type": "string"
+                }
+            }
+        },
+        "dto.GetUserArticlesResponse": {
+            "type": "object",
+            "properties": {
+                "articles": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dto.ArticlesResponse"
+                    }
                 }
             }
         },

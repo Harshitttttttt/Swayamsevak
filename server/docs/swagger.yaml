@@ -21,6 +21,31 @@ definitions:
         example: 550e8400-e29b-41d4-a716-446655440000
         type: string
     type: object
+  dto.ArticlesResponse:
+    properties:
+      author:
+        type: string
+      content:
+        type: string
+      created_at:
+        type: string
+      feed_id:
+        type: string
+      guid:
+        type: string
+      id:
+        type: string
+      published_at:
+        type: string
+      summary:
+        type: string
+      title:
+        type: string
+      updated_at:
+        type: string
+      url:
+        type: string
+    type: object
   dto.FeedResponse:
     properties:
       created_at:
@@ -39,6 +64,13 @@ definitions:
         type: string
       updated_at:
         type: string
+    type: object
+  dto.GetUserArticlesResponse:
+    properties:
+      articles:
+        items:
+          $ref: '#/definitions/dto.ArticlesResponse'
+        type: array
     type: object
   dto.ListFeedsResponse:
     properties:
@@ -309,6 +341,29 @@ paths:
       security:
       - BearerAuth: []
       summary: Add a new RSS feed
+      tags:
+      - Feeds
+  /feed/articles:
+    get:
+      description: Fetch the articles for feeds subscribed to by a user
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Successfully fetched all articles
+          schema:
+            $ref: '#/definitions/dto.GetUserArticlesResponse'
+        "400":
+          description: Invalid Request Body
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      security:
+      - BearerAuth: []
+      summary: Fetch articles for user subscribed feeds
       tags:
       - Feeds
   /feed/subscribe:

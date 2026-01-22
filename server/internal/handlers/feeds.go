@@ -170,3 +170,55 @@ func (h *FeedHandler) SubscribeToFeedHandler(w http.ResponseWriter, r *http.Requ
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(response)
 }
+
+// FetchUserArticlesHandler godoc
+// @Summary      Fetch articles for user subscribed feeds
+// @Description  Fetch the articles for feeds subscribed to by a user
+// @Tags         Feeds
+// @Produce      json
+// @Security     BearerAuth
+// @Success      200 {object} dto.GetUserArticlesResponse "Successfully fetched all articles"
+// @Failure      400 {string} string "Invalid Request Body"
+// @Failure      500 {string} string "Internal Server Error"
+// @Router       /feed/articles [get]
+func (h *FeedHandler) GetUserArticlesHandler(w http.ResponseWriter, r *http.Request) {
+	defer r.Body.Close()
+
+	// Get the userID from the context
+	userID, ok := middleware.GetUserID(r)
+	if !ok {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	// Manage offset and limit here
+	articles, err := h.feedService.FetchUserSubscribedFeeds(r.Context(), userID, 0, 100)
+	if err != nil {
+		http.Error(w, "Error fetching articles: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	response := make([]dto.ArticlesResponse, 0, len(articles))
+	for _, article := range articles {
+		response = append(response, dto.ArticlesResponse{
+			ID:          article.ID,
+			FeedID:      article.FeedID,
+			GUID:        article.GUID,
+			Title:       article.Title,
+			URL:         article.URL,
+			Author:      article.Author,
+			Content:     article.Content,
+			Summary:     article.Summary,
+			PublishedAt: article.PublishedAt,
+			CreatedAt:   article.CreatedAt,
+			UpdatedAt:   article.UpdatedAt,
+		})
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+
+	_ = json.NewEncoder(w).Encode(dto.GetUserArticlesResponse{
+		Articles: response,
+	})
+}

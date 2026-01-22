@@ -31,6 +31,21 @@ type FeedResponse struct {
 	LastFetchedAt *time.Time `json:"last_fetched_at,omitempty"`
 }
 
+// GetArticlesResponse represents the articles details in responses
+type ArticlesResponse struct {
+	ID          uuid.UUID `json:"id"`
+	FeedID      uuid.UUID `json:"feed_id"`
+	GUID        string    `json:"guid"`
+	Title       string    `json:"title"`
+	URL         string    `json:"url"`
+	Author      string    `json:"author"`
+	Content     string    `json:"content"`
+	Summary     string    `json:"summary"`
+	PublishedAt time.Time `json:"published_at"`
+	CreatedAt   time.Time `json:"created_at"`
+	UpdatedAt   time.Time `json:"updated_at"`
+}
+
 // ListFeedsResponse represents the response for listing all feeds
 type ListFeedsResponse struct {
 	Feeds []FeedResponse `json:"feeds"`
@@ -45,4 +60,9 @@ type SubscribeFeedRequest struct {
 // SubscribeFeedResponse represents the response after subscribing to a feed
 type SubscribeFeedResponse struct {
 	Message string `json:"message" example:"Successfully subscribed to the feed"`
+}
+
+// GetUserArticlesResponse represents the response to get all articles of feeds a user is subscribed to
+type GetUserArticlesResponse struct {
+	Articles []ArticlesResponse `json:"articles"`
 }

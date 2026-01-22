@@ -1,6 +1,7 @@
 package models
 
 import (
+	"context"
 	"database/sql"
 	"time"
 
@@ -138,4 +139,37 @@ func (r *FeedRepository) GetFeedByURL(feedURL string) (*Feed, error) {
 	}
 
 	return &feed, nil
+}
+
+// GetNextFeedsToFetch retrieves feeds that haven't been fetched in the last duration
+func (r *FeedRepository) GetNextFeedsToFetch(ctx context.Context, limit int, olderThan time.Duration) ([]*Feed, error) {
+	cutoff := time.Now().Add(-olderThan)
+
+	query :=
+		`
+		SELECT id, feed_url, site_url, title, description, created_at, updated_at, last_fetched_at
+		FROM feeds
+		WHERE last_fetched_at IS NULL 
+		OR last_fetched_at < $2
+		ORDER BY last_fetched_at ASC NULLS FIRST
+		LIMIT $1;
+	`
+
+	rows, err := r.db.QueryContext(ctx, query, limit, cutoff)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var feeds []*Feed
+	for rows.Next() {
+		var feed Feed
+		if err := rows.Scan(&feed.ID, &feed.FeedURL, &feed.SiteURL, &feed.Title, &feed.Description, &feed.CreatedAt, &feed.UpdatedAt, &feed.LastFetchedAt); err != nil {
+			return nil, err
+		}
+
+		feeds = append(feeds, &feed)
+	}
+
+	return feeds, nil
 }
